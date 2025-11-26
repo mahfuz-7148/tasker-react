@@ -3,13 +3,12 @@ import {useState} from 'react';
 export const SearchTask = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const [isSearchActive, setIsSearchActive] = useState(false); // ✅ Track করবে search active আছে কিনা
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
   function handleChange(e) {
     const value = e.target.value;
     setSearchTerm(value);
 
-    // ✅ যদি search active থাকে আর input empty হয়ে যায়, তাহলে reset করো
     if (isSearchActive && value.trim() === "") {
       onSearch("");
       setIsSearchActive(false);
@@ -20,7 +19,7 @@ export const SearchTask = ({ onSearch }) => {
     event.preventDefault();
     if (searchTerm.trim() !== "") {
       onSearch(searchTerm);
-      setIsSearchActive(true); // ✅ Mark করো যে search হয়েছে
+      setIsSearchActive(true);
     }
   }
 
@@ -29,7 +28,7 @@ export const SearchTask = ({ onSearch }) => {
       e.preventDefault();
       if (searchTerm.trim() !== "") {
         onSearch(searchTerm);
-        setIsSearchActive(true); // ✅ Mark করো যে search হয়েছে
+        setIsSearchActive(true);
       }
     }
   }
@@ -37,7 +36,7 @@ export const SearchTask = ({ onSearch }) => {
   function handleClear() {
     setSearchTerm("");
     onSearch("");
-    setIsSearchActive(false); // ✅ Search reset
+    setIsSearchActive(false);
   }
 
   return (

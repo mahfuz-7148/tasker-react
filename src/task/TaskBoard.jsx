@@ -2,6 +2,8 @@ import NoTasksFound from './NoTasksFound.jsx';
 import {TaskList} from './TaskList.jsx';
 import {TaskActions} from './TaskActions.jsx';
 import {SearchTask} from './SearchTask.jsx';
+import {PriorityFilter} from './PriorityFilter.jsx';
+import {TagFilter} from './TagFilter.jsx';
 import {AddTaskModal} from './AddTaskModal.jsx';
 import {useEffect, useState} from 'react';
 import localforage from 'localforage';
@@ -30,7 +32,9 @@ export default function TaskBoard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [taskToUpdate, setTaskToUpdate] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(""); // ✅ Add this
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPriority, setSelectedPriority] = useState("all");
+  const [selectedTags, setSelectedTags] = useState([]);
 
   // Load tasks from localForage on mount
   useEffect(() => {
@@ -43,6 +47,11 @@ export default function TaskBoard() {
       saveTasks(allTasks);
     }
   }, [allTasks, loading]);
+
+  // Apply all filters whenever filter criteria change
+  useEffect(() => {
+    applyAllFilters();
+  }, [searchTerm, selectedPriority, selectedTags, allTasks]);
 
   async function loadTasks() {
     try {
@@ -71,14 +80,46 @@ export default function TaskBoard() {
     }
   }
 
-  // ✅ Helper function to apply search filter
-  function applySearchFilter(tasksList) {
-    if (searchTerm.trim() === "") {
-      return tasksList;
+  // Get all unique tags from all tasks
+  function getAvailableTags() {
+    const tagSet = new Set();
+    allTasks.forEach(task => {
+      if (task.tags && Array.isArray(task.tags)) {
+        task.tags.forEach(tag => tagSet.add(tag));
+      }
+    });
+    return Array.from(tagSet).sort();
+  }
+
+  // Apply all filters (search, priority, tags)
+  function applyAllFilters() {
+    let filtered = [...allTasks];
+
+    // Apply search filter
+    if (searchTerm.trim() !== "") {
+      filtered = filtered.filter((task) =>
+        task.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
-    return tasksList.filter((task) =>
-      task.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+
+    // Apply priority filter
+    if (selectedPriority !== "all") {
+      filtered = filtered.filter((task) =>
+        task.priority.toLowerCase() === selectedPriority.toLowerCase()
+      );
+    }
+
+    // Apply tag filter
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((task) => {
+        if (!task.tags || !Array.isArray(task.tags)) return false;
+        return selectedTags.some(selectedTag =>
+          task.tags.includes(selectedTag)
+        );
+      });
+    }
+
+    setTasks(filtered);
   }
 
   function handleAddEditTask(newTask, isAdd) {
@@ -91,7 +132,6 @@ export default function TaskBoard() {
       );
     }
     setAllTasks(updatedTasks);
-    setTasks(applySearchFilter(updatedTasks)); // ✅ Apply search filter
     handleCloseClick();
   }
 
@@ -103,14 +143,15 @@ export default function TaskBoard() {
   function handleDeleteTask(taskId) {
     const tasksAfterDelete = allTasks.filter((task) => task.id !== taskId);
     setAllTasks(tasksAfterDelete);
-    setTasks(applySearchFilter(tasksAfterDelete)); // ✅ Apply search filter
   }
 
   function handleDeleteAllClick() {
     if (window.confirm('Are you sure you want to delete all tasks?')) {
       setAllTasks([]);
       setTasks([]);
-      setSearchTerm(""); // ✅ Reset search
+      setSearchTerm("");
+      setSelectedPriority("all");
+      setSelectedTags([]);
     }
   }
 
@@ -122,19 +163,26 @@ export default function TaskBoard() {
       return task;
     });
     setAllTasks(updatedTasks);
-    setTasks(applySearchFilter(updatedTasks)); // ✅ Apply search filter
   }
 
   function handleSearch(searchValue) {
-    setSearchTerm(searchValue); // ✅ Save search term
-    if (searchValue.trim() === "") {
-      setTasks([...allTasks]);
-    } else {
-      const filtered = allTasks.filter((task) =>
-        task.title.toLowerCase().includes(searchValue.toLowerCase())
-      );
-      setTasks([...filtered]);
-    }
+    setSearchTerm(searchValue);
+  }
+
+  function handlePriorityChange(priority) {
+    setSelectedPriority(priority);
+  }
+
+  function handleTagToggle(tag) {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  }
+
+  function handleClearTags() {
+    setSelectedTags([]);
   }
 
   function handleCloseClick() {
@@ -154,6 +202,8 @@ export default function TaskBoard() {
     );
   }
 
+  const availableTags = getAvailableTags();
+
   return (
     <section className="mb-20" id="tasks">
       {showAddModal && (
@@ -164,8 +214,22 @@ export default function TaskBoard() {
         />
       )}
       <div className="container">
-        <div className="p-2 flex justify-end">
+        <div className="p-2 flex justify-end mb-4">
           <SearchTask onSearch={handleSearch} />
+        </div>
+
+        <div className="mb-4 space-y-4">
+          <PriorityFilter
+            selectedPriority={selectedPriority}
+            onPriorityChange={handlePriorityChange}
+          />
+
+          <TagFilter
+            availableTags={availableTags}
+            selectedTags={selectedTags}
+            onTagToggle={handleTagToggle}
+            onClearTags={handleClearTags}
+          />
         </div>
 
         <div className="rounded-xl border border-[rgba(206,206,206,0.12)] bg-[#1D212B] px-6 py-8 md:px-9 md:py-16">
