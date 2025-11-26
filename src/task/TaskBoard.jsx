@@ -18,15 +18,6 @@ localforage.config({
 });
 
 export default function TaskBoard() {
-  const defaultTask = {
-    id: crypto.randomUUID(),
-    title: "",
-    description: "",
-    tags: [],
-    priority: "",
-    isFavorite: false
-  };
-
   const [tasks, setTasks] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -60,13 +51,14 @@ export default function TaskBoard() {
         setTasks(savedTasks);
         setAllTasks(savedTasks);
       } else {
-        setTasks([defaultTask]);
-        setAllTasks([defaultTask]);
+        // ✅ Empty - no initial task
+        setTasks([]);
+        setAllTasks([]);
       }
     } catch (error) {
       console.error('Error loading tasks:', error);
-      setTasks([defaultTask]);
-      setAllTasks([defaultTask]);
+      setTasks([]);
+      setAllTasks([]);
     } finally {
       setLoading(false);
     }
