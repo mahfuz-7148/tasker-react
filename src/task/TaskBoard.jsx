@@ -1,130 +1,190 @@
-import { useState } from "react";
+import NoTasksFound from './NoTasksFound.jsx';
+import {TaskList} from './TaskList.jsx';
+import {TaskActions} from './TaskActions.jsx';
+import {SearchTask} from './SearchTask.jsx';
+import {AddTaskModal} from './AddTaskModal.jsx';
+import {useEffect, useState} from 'react';
+import localforage from 'localforage';
 
-import AddTaskModal from "./AddTaskModal";
-import SearchTask from "./SearchTask";
-import TaskActions from "./TaskActions";
-import TaskList from "./TaskList";
-import NoTasksFound from "./NoTasksFound";
+// Configure localForage
+localforage.config({
+  driver: localforage.INDEXEDDB,
+  name: 'TaskApp',
+  version: 1.0,
+  storeName: 'tasks',
+  description: 'Task management app with persistence'
+});
 
 export default function TaskBoard() {
-    const defaultTask = {
-        id: crypto.randomUUID(),
-        title: "Learn React Native",
-        description:
-            "I want to Learn React such thanI can treat it like my slave and make it do whatever I want to do.",
-        tags: ["web", "react", "js"],
-        priority: "High",
-        isFavorite: true,
-    };
-    const [tasks, setTasks] = useState([defaultTask]);
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [taskToUpdate, setTaskToUpdate] = useState(null);
+  const defaultTask = {
+    id: crypto.randomUUID(),
+    title: "Learn React Native",
+    description: "I want to Learn React such that I can treat it like my slave and make it do whatever I want to do.",
+    tags: ["web", "react", "js"],
+    priority: "High",
+    isFavorite: true,
+  };
 
+  const [tasks, setTasks] = useState([]);
+  const [allTasks, setAllTasks] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [taskToUpdate, setTaskToUpdate] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState(""); // ✅ Add this
 
-    function handleAddEditTask(newTask, isAdd) {
-        if (isAdd) {
-            setTasks([...tasks, newTask]);
-        } else {
-            setTasks(
-                tasks.map((task) => {
-                    if (task.id === newTask.id) {
-                        return newTask;
-                    }
-                    return task;
-                })
-            );
-        }
+  // Load tasks from localForage on mount
+  useEffect(() => {
+    loadTasks();
+  }, []);
 
-       handleCloseClick();
+  // Save tasks to localForage whenever they change
+  useEffect(() => {
+    if (!loading) {
+      saveTasks(allTasks);
     }
+  }, [allTasks, loading]);
 
-    function handleEditTask(task) {
-        setTaskToUpdate(task);
-        setShowAddModal(true);
+  async function loadTasks() {
+    try {
+      const savedTasks = await localforage.getItem('taskList');
+      if (savedTasks && savedTasks.length > 0) {
+        setTasks(savedTasks);
+        setAllTasks(savedTasks);
+      } else {
+        setTasks([defaultTask]);
+        setAllTasks([defaultTask]);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      setTasks([defaultTask]);
+      setAllTasks([defaultTask]);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    function handleDeleteTask(taskId) {
-        const tasksAfterDelete = tasks.filter((task) => task.id !== taskId);
-        setTasks(tasksAfterDelete);
+  async function saveTasks(tasksToSave) {
+    try {
+      await localforage.setItem('taskList', tasksToSave);
+    } catch (error) {
+      console.error('Error saving tasks:', error);
     }
+  }
 
-    function handleDeleteAllClick() {
-        tasks.length = 0;
-        setTasks([...tasks]);
+  // ✅ Helper function to apply search filter
+  function applySearchFilter(tasksList) {
+    if (searchTerm.trim() === "") {
+      return tasksList;
     }
-
-    function handleFavorite(taskId) {
-        // This portion of the commented code is not fully perfect. Here
-        // we are not doing the deep cloning of the tasks array. The tasks array has
-        // objects inside, while using the spread operator, it will only make the shallow copy.
-        // But we need to do the deep copy.
-
-        // We are not removing this commented code as it was part of the recording.
-        // But the same code is now made better and written below.
-        /*
-        const taskIndex = tasks.findIndex((task) => task.id === taskId);
-        const newTasks = [...tasks];
-        newTasks[taskIndex].isFavorite = !newTasks[taskIndex].isFavorite;
-        setTasks(newTasks);
-        */
-
-        // The better way of managing updates in the object within an array as a
-        // state in react.
-        setTasks(tasks.map((task) => {
-            if (task.id === taskId) {
-                return {...task, isFavorite: !task.isFavorite};
-            } else {
-                return task;
-            }
-        }))
-    }
-
-    function handleSearch(searchTerm) {
-        console.log(searchTerm);
-
-        const filtered = tasks.filter((task) =>
-            task.title.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-        setTasks([...filtered]);
-
-    }
-
-    function handleCloseClick() {
-        setShowAddModal(false);
-        setTaskToUpdate(null);
-    }
-
-    return (
-        <section className="mb-20" id="tasks">
-            {showAddModal && (
-                <AddTaskModal
-                    onSave={handleAddEditTask}
-                    onCloseClick={handleCloseClick}
-                    taskToUpdate={taskToUpdate}
-                />
-            )}
-            <div className="container">
-                <div className="p-2 flex justify-end">
-                    <SearchTask onSearch={handleSearch} />
-                </div>
-
-                <div className="rounded-xl border border-[rgba(206,206,206,0.12)] bg-[#1D212B] px-6 py-8 md:px-9 md:py-16">
-                    <TaskActions
-                        onAddClick={() => setShowAddModal(true)}
-                        onDeleteAllClick={handleDeleteAllClick}
-                    />
-                    {
-                        tasks.length > 0 ?
-                        (<TaskList
-                            tasks={tasks}
-                            onEdit={handleEditTask}
-                            onDelete={handleDeleteTask}
-                            onFav={handleFavorite}
-                        />) : (<NoTasksFound />)
-                    }
-                </div>
-            </div>
-        </section>
+    return tasksList.filter((task) =>
+      task.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
+  }
+
+  function handleAddEditTask(newTask, isAdd) {
+    let updatedTasks;
+    if (isAdd) {
+      updatedTasks = [...allTasks, newTask];
+    } else {
+      updatedTasks = allTasks.map((task) =>
+        task.id === newTask.id ? newTask : task
+      );
+    }
+    setAllTasks(updatedTasks);
+    setTasks(applySearchFilter(updatedTasks)); // ✅ Apply search filter
+    handleCloseClick();
+  }
+
+  function handleEditTask(task) {
+    setTaskToUpdate(task);
+    setShowAddModal(true);
+  }
+
+  function handleDeleteTask(taskId) {
+    const tasksAfterDelete = allTasks.filter((task) => task.id !== taskId);
+    setAllTasks(tasksAfterDelete);
+    setTasks(applySearchFilter(tasksAfterDelete)); // ✅ Apply search filter
+  }
+
+  function handleDeleteAllClick() {
+    if (window.confirm('Are you sure you want to delete all tasks?')) {
+      setAllTasks([]);
+      setTasks([]);
+      setSearchTerm(""); // ✅ Reset search
+    }
+  }
+
+  function handleFavorite(taskId) {
+    const updatedTasks = allTasks.map((task) => {
+      if (task.id === taskId) {
+        return {...task, isFavorite: !task.isFavorite};
+      }
+      return task;
+    });
+    setAllTasks(updatedTasks);
+    setTasks(applySearchFilter(updatedTasks)); // ✅ Apply search filter
+  }
+
+  function handleSearch(searchValue) {
+    setSearchTerm(searchValue); // ✅ Save search term
+    if (searchValue.trim() === "") {
+      setTasks([...allTasks]);
+    } else {
+      const filtered = allTasks.filter((task) =>
+        task.title.toLowerCase().includes(searchValue.toLowerCase())
+      );
+      setTasks([...filtered]);
+    }
+  }
+
+  function handleCloseClick() {
+    setShowAddModal(false);
+    setTaskToUpdate(null);
+  }
+
+  if (loading) {
+    return (
+      <section className="mb-20" id="tasks">
+        <div className="container">
+          <div className="rounded-xl border border-[rgba(206,206,206,0.12)] bg-[#1D212B] px-6 py-16 text-center">
+            <div className="text-xl text-gray-400">Loading tasks...</div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-20" id="tasks">
+      {showAddModal && (
+        <AddTaskModal
+          onSave={handleAddEditTask}
+          onCloseClick={handleCloseClick}
+          taskToUpdate={taskToUpdate}
+        />
+      )}
+      <div className="container">
+        <div className="p-2 flex justify-end">
+          <SearchTask onSearch={handleSearch} />
+        </div>
+
+        <div className="rounded-xl border border-[rgba(206,206,206,0.12)] bg-[#1D212B] px-6 py-8 md:px-9 md:py-16">
+          <TaskActions
+            onAddClick={() => setShowAddModal(true)}
+            onDeleteAllClick={handleDeleteAllClick}
+          />
+          {tasks.length > 0 ? (
+            <TaskList
+              tasks={tasks}
+              onEdit={handleEditTask}
+              onDelete={handleDeleteTask}
+              onFav={handleFavorite}
+            />
+          ) : (
+            <NoTasksFound />
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
