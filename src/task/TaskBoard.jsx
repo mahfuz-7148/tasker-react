@@ -5,8 +5,10 @@ import {SearchTask} from './SearchTask.jsx';
 import {PriorityFilter} from './PriorityFilter.jsx';
 import {TagFilter} from './TagFilter.jsx';
 import {AddTaskModal} from './AddTaskModal.jsx';
+
 import {useEffect, useState} from 'react';
 import localforage from 'localforage';
+import Modal from './modal.jsx';
 
 // Configure localForage
 localforage.config({
@@ -26,6 +28,14 @@ export default function TaskBoard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("all");
   const [selectedTags, setSelectedTags] = useState([]);
+
+  // ✅ Modal states
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    taskId: null,
+    taskTitle: ''
+  });
+  const [deleteAllModal, setDeleteAllModal] = useState(false);
 
   // Load tasks from localForage on mount
   useEffect(() => {
@@ -51,7 +61,6 @@ export default function TaskBoard() {
         setTasks(savedTasks);
         setAllTasks(savedTasks);
       } else {
-        // ✅ Empty - no initial task
         setTasks([]);
         setAllTasks([]);
       }
@@ -132,19 +141,36 @@ export default function TaskBoard() {
     setShowAddModal(true);
   }
 
-  function handleDeleteTask(taskId) {
-    const tasksAfterDelete = allTasks.filter((task) => task.id !== taskId);
-    setAllTasks(tasksAfterDelete);
+  // ✅ Handle delete single task - Open modal
+  function handleDeleteTask(taskId, taskTitle) {
+    setDeleteModal({
+      isOpen: true,
+      taskId: taskId,
+      taskTitle: taskTitle
+    });
   }
 
+  // ✅ Confirm delete single task
+  function confirmDeleteTask() {
+    const tasksAfterDelete = allTasks.filter((task) => task.id !== deleteModal.taskId);
+    setAllTasks(tasksAfterDelete);
+    setDeleteModal({ isOpen: false, taskId: null, taskTitle: '' });
+  }
+
+  // ✅ Handle delete all tasks - Open modal
   function handleDeleteAllClick() {
-    if (window.confirm('Are you sure you want to delete all tasks?')) {
-      setAllTasks([]);
-      setTasks([]);
-      setSearchTerm("");
-      setSelectedPriority("all");
-      setSelectedTags([]);
-    }
+    if (allTasks.length === 0) return; // Don't show modal if no tasks
+    setDeleteAllModal(true);
+  }
+
+  // ✅ Confirm delete all tasks
+  function confirmDeleteAll() {
+    setAllTasks([]);
+    setTasks([]);
+    setSearchTerm("");
+    setSelectedPriority("all");
+    setSelectedTags([]);
+    setDeleteAllModal(false);
   }
 
   function handleFavorite(taskId) {
@@ -198,6 +224,34 @@ export default function TaskBoard() {
 
   return (
     <section className="mb-20" id="tasks">
+      {/* ✅ Delete Single Task Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, taskId: null, taskTitle: '' })}
+        onConfirm={confirmDeleteTask}
+        title="Delete Task"
+        message={`Are you sure you want to delete "${deleteModal.taskTitle}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        showExtraWarning={true}
+        warningMessage="This action cannot be undone!"
+      />
+
+      {/* ✅ Delete All Tasks Modal */}
+      <Modal
+        isOpen={deleteAllModal}
+        onClose={() => setDeleteAllModal(false)}
+        onConfirm={confirmDeleteAll}
+        title="Delete All Tasks"
+        message={`Are you sure you want to delete all ${allTasks.length} tasks? This will remove everything from your task list.`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        variant="danger"
+        showExtraWarning={true}
+        warningMessage="This action will permanently delete all tasks!"
+      />
+
       {showAddModal && (
         <AddTaskModal
           onSave={handleAddEditTask}
@@ -205,6 +259,7 @@ export default function TaskBoard() {
           taskToUpdate={taskToUpdate}
         />
       )}
+
       <div className="container">
         <div className="p-2 flex justify-end mb-4">
           <SearchTask onSearch={handleSearch} />

@@ -11,6 +11,7 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
   });
 
   const [isAdd] = useState(Object.is(taskToUpdate, null));
+  const [errors, setErrors] = useState({}); // ✅ Error tracking
 
   const handleChange = (evt) => {
     const name = evt.target.name;
@@ -22,11 +23,47 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
       ...task,
       [name]: value
     });
+
+    // ✅ Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ""
+      });
+    }
+  };
+
+  // ✅ Validate all fields
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!task.title.trim()) {
+      newErrors.title = "Title is required";
+    }
+
+    if (!task.description.trim()) {
+      newErrors.description = "Description is required";
+    }
+
+    if (!task.tags || task.tags.length === 0 || (task.tags.length === 1 && !task.tags[0].trim())) {
+      newErrors.tags = "At least one tag is required";
+    }
+
+    if (!task.priority) {
+      newErrors.priority = "Priority is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(task, isAdd);
+
+    // ✅ Validate before saving
+    if (validateForm()) {
+      onSave(task, isAdd);
+    }
   };
 
   return (
@@ -38,51 +75,132 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
         </h2>
 
         <div className="space-y-6 text-white lg:space-y-7">
+          {/* Title Field */}
           <div className="space-y-2 lg:space-y-3 group">
             <label htmlFor="title" className="text-sm font-semibold text-slate-200 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"></span>
-              Title
+              Title <span className="text-red-400">*</span>
             </label>
-            <input className="block w-full rounded-xl bg-slate-800/60 border border-slate-600/30 px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60" type="text" name="title" id="title" placeholder="Enter task title..." value={task.title} onChange={handleChange} required />
+            <input
+              className={`block w-full rounded-xl bg-slate-800/60 border ${
+                errors.title ? 'border-red-500/50 focus:ring-red-500/60' : 'border-slate-600/30 focus:ring-blue-500/60'
+              } px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2`}
+              type="text"
+              name="title"
+              id="title"
+              placeholder="Enter task title..."
+              value={task.title}
+              onChange={handleChange}
+            />
+            {errors.title && (
+              <p className="text-red-400 text-sm flex items-center gap-1 mt-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {errors.title}
+              </p>
+            )}
           </div>
 
+          {/* Description Field */}
           <div className="space-y-2 lg:space-y-3 group">
             <label htmlFor="description" className="text-sm font-semibold text-slate-200 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500"></span>
-              Description
+              Description <span className="text-red-400">*</span>
             </label>
-            <textarea className="block min-h-[120px] w-full rounded-xl bg-slate-800/60 border border-slate-600/30 px-4 py-3.5 text-white placeholder:text-slate-500 lg:min-h-[180px] focus:outline-none focus:ring-2 focus:ring-indigo-500/60 resize-none" name="description" id="description" placeholder="Describe your task..." value={task.description} onChange={handleChange} required></textarea>
+            <textarea
+              className={`block min-h-[120px] w-full rounded-xl bg-slate-800/60 border ${
+                errors.description ? 'border-red-500/50 focus:ring-red-500/60' : 'border-slate-600/30 focus:ring-indigo-500/60'
+              } px-4 py-3.5 text-white placeholder:text-slate-500 lg:min-h-[180px] focus:outline-none focus:ring-2 resize-none`}
+              name="description"
+              id="description"
+              placeholder="Describe your task..."
+              value={task.description}
+              onChange={handleChange}
+            ></textarea>
+            {errors.description && (
+              <p className="text-red-400 text-sm flex items-center gap-1 mt-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {errors.description}
+              </p>
+            )}
           </div>
 
           <div className="grid-cols-2 gap-x-4 max-md:space-y-6 md:grid lg:gap-x-6">
+            {/* Tags Field */}
             <div className="space-y-2 lg:space-y-3 group">
               <label htmlFor="tags" className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500"></span>
-                Tags
+                Tags <span className="text-red-400">*</span>
               </label>
-              <input className="block w-full rounded-xl bg-slate-800/60 border border-slate-600/30 px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/60" type="text" name="tags" id="tags" placeholder="work, urgent, design" value={task.tags} onChange={handleChange} required />
+              <input
+                className={`block w-full rounded-xl bg-slate-800/60 border ${
+                  errors.tags ? 'border-red-500/50 focus:ring-red-500/60' : 'border-slate-600/30 focus:ring-purple-500/60'
+                } px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2`}
+                type="text"
+                name="tags"
+                id="tags"
+                placeholder="work, urgent, design"
+                value={task.tags}
+                onChange={handleChange}
+              />
+              {errors.tags && (
+                <p className="text-red-400 text-sm flex items-center gap-1 mt-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.tags}
+                </p>
+              )}
             </div>
 
+            {/* Priority Field */}
             <div className="space-y-2 lg:space-y-3 group">
               <label htmlFor="priority" className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-pink-500"></span>
-                Priority
+                Priority <span className="text-red-400">*</span>
               </label>
-              <select className="block w-full cursor-pointer rounded-xl bg-slate-800/60 border border-slate-600/30 px-4 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/60" name="priority" id="priority" value={task.priority} onChange={handleChange} required>
+              <select
+                className={`block w-full cursor-pointer rounded-xl bg-slate-800/60 border ${
+                  errors.priority ? 'border-red-500/50 focus:ring-red-500/60' : 'border-slate-600/30 focus:ring-pink-500/60'
+                } px-4 py-3.5 text-white focus:outline-none focus:ring-2`}
+                name="priority"
+                id="priority"
+                value={task.priority}
+                onChange={handleChange}
+              >
                 <option value="">Select Priority</option>
                 <option value="Low">🟢 Low</option>
                 <option value="Medium">🟡 Medium</option>
                 <option value="High">🔴 High</option>
               </select>
+              {errors.priority && (
+                <p className="text-red-400 text-sm flex items-center gap-1 mt-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.priority}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         <div className="mt-12 flex justify-between gap-4 lg:mt-16">
-          <button type="button" className="rounded-xl bg-gradient-to-r from-red-600 to-rose-700 px-8 py-3.5 text-white font-semibold transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 active:scale-95" onClick={onCloseClick}>
+          <button
+            type="button"
+            className="rounded-xl bg-gradient-to-r from-red-600 to-rose-700 px-8 py-3.5 text-white font-semibold transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 active:scale-95"
+            onClick={onCloseClick}
+          >
             ✕ Close
           </button>
-          <button type="button" className="rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-700 px-8 py-3.5 text-white font-semibold transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 active:scale-95" onClick={handleSubmit}>
+          <button
+            type="button"
+            className="rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-700 px-8 py-3.5 text-white font-semibold transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 active:scale-95"
+            onClick={handleSubmit}
+          >
             {isAdd ? "✓ Create Task" : "✓ Update Task"}
           </button>
         </div>
