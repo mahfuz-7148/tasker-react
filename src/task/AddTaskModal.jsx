@@ -11,14 +11,17 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
   });
 
   const [isAdd] = useState(Object.is(taskToUpdate, null));
-  const [errors, setErrors] = useState({}); // ✅ Error tracking
+  const [errors, setErrors] = useState({});
 
   const handleChange = (evt) => {
     const name = evt.target.name;
     let value = evt.target.value;
+
     if (name === 'tags') {
-      value = value.split(",");
+      // ✅ Split করার পর empty strings filter করে ফেলো
+      value = value.split(",")
     }
+
     setTask({
       ...task,
       [name]: value
@@ -34,6 +37,7 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
   };
 
   // ✅ Validate all fields
+  // ✅ Validate all fields
   const validateForm = () => {
     const newErrors = {}
 
@@ -45,14 +49,21 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
       newErrors.description = 'description is required'
     }
 
-    // Updated tags validation
+    // ✅ Tags validation - empty tags check করো
     if (!task.tags || task.tags.length === 0) {
-      newErrors.tags = 'at least one tag is required'
+      newErrors.tags = 'at least one valid tag is required'
     } else {
-      // Check করো সব tags valid কিনা
-      const validTags = task.tags.filter(tag => tag.trim())
-      if (validTags.length === 0) {
-        newErrors.tags = 'at least one valid tag is required'
+      // Check করো কোন empty tag আছে কিনা
+      const hasEmptyTag = task.tags.some(tag => !tag.trim());
+
+      if (hasEmptyTag) {
+        newErrors.tags = 'Empty tags are not allowed. Please remove extra commas.'
+      } else {
+        // সব tags valid কিনা check করো
+        const validTags = task.tags.filter(tag => tag.trim());
+        if (validTags.length === 0) {
+          newErrors.tags = 'at least one valid tag is required'
+        }
       }
     }
 
@@ -61,14 +72,21 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
     }
 
     setErrors(newErrors)
-  }
 
+    // ✅ Return true if no errors, false if errors exist
+    return Object.keys(newErrors).length === 0
+  }
   const handleSubmit = (e) => {
     e.preventDefault();
+    // ✅ Submit করার আগে empty tags filter করো
+    const cleanedTask = {
+      ...task,
+      tags: task.tags.filter(tag => tag.trim())
+    };
 
     // ✅ Validate before saving
     if (validateForm()) {
-      onSave(task, isAdd);
+      onSave(cleanedTask, isAdd);
     }
   };
 
