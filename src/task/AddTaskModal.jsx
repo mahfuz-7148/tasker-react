@@ -35,27 +35,33 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
 
   // ✅ Validate all fields
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors = {}
 
     if (!task.title.trim()) {
-      newErrors.title = "Title is required";
+      newErrors.title = 'Title is required'
     }
 
     if (!task.description.trim()) {
-      newErrors.description = "Description is required";
+      newErrors.description = 'description is required'
     }
 
-    if (!task.tags || task.tags.length === 0 || (task.tags.length === 1 && !task.tags[0].trim())) {
-      newErrors.tags = "At least one tag is required";
+    // Updated tags validation
+    if (!task.tags || task.tags.length === 0) {
+      newErrors.tags = 'at least one tag is required'
+    } else {
+      // Check করো সব tags valid কিনা
+      const validTags = task.tags.filter(tag => tag.trim())
+      if (validTags.length === 0) {
+        newErrors.tags = 'at least one valid tag is required'
+      }
     }
 
     if (!task.priority) {
-      newErrors.priority = "Priority is required";
+      newErrors.priority = 'priority is required'
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    setErrors(newErrors)
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();

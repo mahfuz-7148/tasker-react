@@ -108,7 +108,7 @@ export default function TaskBoard() {
       filtered = filtered.filter((task) =>
         task.priority.toLowerCase() === selectedPriority.toLowerCase()
       );
-    }
+    }                   
 
     // Apply tag filter
     if (selectedTags.length > 0) {
