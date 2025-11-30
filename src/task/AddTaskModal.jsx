@@ -52,7 +52,7 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
     } else {
       const hasEmptyTags = task.tags.some(tag => !tag.trim())
       if (hasEmptyTags) {
-        newErrors.tags = 'empty tags not allowed'
+        newErrors.tags = 'empty tags are not allowed'
       }
     }
 
