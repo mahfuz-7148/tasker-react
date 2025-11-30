@@ -12,11 +12,8 @@ import Modal from './modal.jsx';
 
 // Configure localForage
 localforage.config({
-  driver: localforage.INDEXEDDB,
-  name: 'TaskApp',
-  version: 1.0,
-  storeName: 'tasks',
-  description: 'Task management app with persistence'
+  name: 'taskapp',
+  storeName: 'tasks'
 });
 
 export default function TaskBoard() {
