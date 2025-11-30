@@ -36,8 +36,6 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
     }
   };
 
-  // ✅ Validate all fields
-  // ✅ Validate all fields
   const validateForm = () => {
     const newErrors = {}
 
@@ -49,21 +47,12 @@ export const AddTaskModal = ({onSave, taskToUpdate, onCloseClick}) => {
       newErrors.description = 'description is required'
     }
 
-    // ✅ Tags validation - empty tags check করো
     if (!task.tags || task.tags.length === 0) {
       newErrors.tags = 'at least one valid tag is required'
     } else {
-      // Check করো কোন empty tag আছে কিনা
-      const hasEmptyTag = task.tags.some(tag => !tag.trim());
-
-      if (hasEmptyTag) {
-        newErrors.tags = 'Empty tags are not allowed. Please remove extra commas.'
-      } else {
-        // সব tags valid কিনা check করো
-        const validTags = task.tags.filter(tag => tag.trim());
-        if (validTags.length === 0) {
-          newErrors.tags = 'at least one valid tag is required'
-        }
+      const hasEmptyTags = task.tags.some(tag => !tag.trim())
+      if (hasEmptyTags) {
+        newErrors.tags = 'empty tags not allowed'
       }
     }
 
