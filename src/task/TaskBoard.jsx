@@ -26,7 +26,7 @@ export default function TaskBoard() {
   const [selectedPriority, setSelectedPriority] = useState("all");
   const [selectedTags, setSelectedTags] = useState([]);
 
-  // ✅ Modal states
+  // Modal states
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     taskId: null,
@@ -54,7 +54,7 @@ export default function TaskBoard() {
   async function loadTasks() {
     try {
       const savedTasks = await localforage.getItem('taskList');
-      if (savedTasks && savedTasks.length > 0) {
+      if (savedTasks && Array.isArray(savedTasks) && savedTasks.length > 0) {
         setTasks(savedTasks);
         setAllTasks(savedTasks);
       } else {
@@ -83,7 +83,11 @@ export default function TaskBoard() {
     const tagSet = new Set();
     allTasks.forEach(task => {
       if (task.tags && Array.isArray(task.tags)) {
-        task.tags.forEach(tag => tagSet.add(tag));
+        task.tags.forEach(tag => {
+          if (tag && typeof tag === 'string' && tag.trim()) {
+            tagSet.add(tag.trim());
+          }
+        });
       }
     });
     return Array.from(tagSet).sort();
@@ -95,17 +99,19 @@ export default function TaskBoard() {
 
     // Apply search filter
     if (searchTerm.trim() !== "") {
-      filtered = filtered.filter((task) =>
-        task.title.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter((task) => {
+        if (!task.title) return false;
+        return task.title.toLowerCase().includes(searchTerm.toLowerCase());
+      });
     }
 
     // Apply priority filter
     if (selectedPriority !== "all") {
-      filtered = filtered.filter((task) =>
-        task.priority.toLowerCase() === selectedPriority.toLowerCase()
-      );
-    }                   
+      filtered = filtered.filter((task) => {
+        if (!task.priority) return false;
+        return task.priority.toLowerCase() === selectedPriority.toLowerCase();
+      });
+    }
 
     // Apply tag filter
     if (selectedTags.length > 0) {
@@ -120,7 +126,7 @@ export default function TaskBoard() {
     setTasks(filtered);
   }
 
-  function handleAddEditTask(newTask, isAdd) {
+  function handleAddEditTask(isAdd, newTask) {
     let updatedTasks;
     if (isAdd) {
       updatedTasks = [...allTasks, newTask];
@@ -138,29 +144,29 @@ export default function TaskBoard() {
     setShowAddModal(true);
   }
 
-  // ✅ Handle delete single task - Open modal
+  // Handle delete single task - Open modal
   function handleDeleteTask(taskId, taskTitle) {
     setDeleteModal({
       isOpen: true,
       taskId: taskId,
-      taskTitle: taskTitle
+      taskTitle: taskTitle || 'Untitled Task'
     });
   }
 
-  // ✅ Confirm delete single task
+  // Confirm delete single task
   function confirmDeleteTask() {
     const tasksAfterDelete = allTasks.filter((task) => task.id !== deleteModal.taskId);
     setAllTasks(tasksAfterDelete);
     setDeleteModal({ isOpen: false, taskId: null, taskTitle: '' });
   }
 
-  // ✅ Handle delete all tasks - Open modal
+  // Handle delete all tasks - Open modal
   function handleDeleteAllClick() {
     if (allTasks.length === 0) return; // Don't show modal if no tasks
     setDeleteAllModal(true);
   }
 
-  // ✅ Confirm delete all tasks
+  // Confirm delete all tasks
   function confirmDeleteAll() {
     setAllTasks([]);
     setTasks([]);
@@ -210,7 +216,10 @@ export default function TaskBoard() {
       <section className="mb-20" id="tasks">
         <div className="container">
           <div className="rounded-xl border border-[rgba(206,206,206,0.12)] bg-[#1D212B] px-6 py-16 text-center">
-            <div className="text-xl text-gray-400">Loading tasks...</div>
+            <div className="flex flex-col items-center justify-center gap-4">
+              <div className="w-12 h-12 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin"></div>
+              <div className="text-xl text-gray-400">Loading tasks...</div>
+            </div>
           </div>
         </div>
       </section>
@@ -221,38 +230,42 @@ export default function TaskBoard() {
 
   return (
     <section className="mb-20" id="tasks">
-      {/* ✅ Delete Single Task Modal */}
-      <Modal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, taskId: null, taskTitle: '' })}
-        onConfirm={confirmDeleteTask}
-        title="Delete Task"
-        message={`Are you sure you want to delete "${deleteModal.taskTitle}"?`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-        showExtraWarning={true}
-        warningMessage="This action cannot be undone!"
-      />
+      {/* Delete Single Task Modal */}
+      {deleteModal.isOpen && (
+        <Modal
+          isOpen={deleteModal.isOpen}
+          onClose={() => setDeleteModal({ isOpen: false, taskId: null, taskTitle: '' })}
+          onConfirm={confirmDeleteTask}
+          title="Delete Task"
+          message={`Are you sure you want to delete "${deleteModal.taskTitle}"?`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          showExtraWarning={true}
+          warningMessage="This action cannot be undone!"
+        />
+      )}
 
-      {/* ✅ Delete All Tasks Modal */}
-      <Modal
-        isOpen={deleteAllModal}
-        onClose={() => setDeleteAllModal(false)}
-        onConfirm={confirmDeleteAll}
-        title="Delete All Tasks"
-        message={`Are you sure you want to delete all ${allTasks.length} tasks? This will remove everything from your task list.`}
-        confirmText="Delete All"
-        cancelText="Cancel"
-        variant="danger"
-        showExtraWarning={true}
-        warningMessage="This action will permanently delete all tasks!"
-      />
+      {/* Delete All Tasks Modal */}
+      {deleteAllModal && (
+        <Modal
+          isOpen={deleteAllModal}
+          onClose={() => setDeleteAllModal(false)}
+          onConfirm={confirmDeleteAll}
+          title="Delete All Tasks"
+          message={`Are you sure you want to delete all ${allTasks.length} tasks? This will remove everything from your task list.`}
+          confirmText="Delete All"
+          cancelText="Cancel"
+          variant="danger"
+          showExtraWarning={true}
+          warningMessage="This action will permanently delete all tasks!"
+        />
+      )}
 
       {showAddModal && (
         <AddTaskModal
           onSave={handleAddEditTask}
-          onCloseClick={handleCloseClick}
+          handleCloseClick={handleCloseClick}
           taskToUpdate={taskToUpdate}
         />
       )}
